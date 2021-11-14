@@ -18,6 +18,8 @@ defmodule ToyRobot do
     {:ok, %ToyRobot.Position{}}
   end
 
+
+
   def place(x, y, _facing) when x < 1 or y < :a or x > @table_top_x or y > @table_top_y do
     {:failure, "Invalid position"}
   end
@@ -28,6 +30,9 @@ defmodule ToyRobot do
     {:failure, "Invalid facing direction"}
   end
 
+  def place(x, y, facing) do
+    {:ok, %ToyRobot.Position{x: x, y: y, facing: facing}}
+  end
   @doc """
   Places the robot to the provided position of (x, y, facing),
   but prevents it to be placed outside of the table and facing invalid direction.
@@ -43,24 +48,25 @@ defmodule ToyRobot do
       iex> ToyRobot.place(3, :c, :north_east)
       {:failure, "Invalid facing direction"}
   """
-  def place(x, y, facing) do
-    {:ok, %ToyRobot.Position{x: x, y: y, facing: facing}}
+  def start() do
+    {:ok, %ToyRobot.Position{x: 1, y: :a, facing: :north}}
+  end
+  def start(x, y, facing) when x < 1 or y < :a or x > @table_top_x or y > @table_top_y do
+    {:failure, "Invalid START position"}
   end
 
-  @doc """
-  Provide START position to the robot as given location of (x, y, facing) and place it.
-  """
+
+  def start(x, y, facing)
+  when facing not in [:north, :east, :south, :west]
+  do
+    {:failure, "Invalid facing direction"}
+  end
+
   def start(x, y, facing) do
     {:ok, %ToyRobot.Position{x: x, y: y, facing: facing}}
   end
 
-  def start() do
-    {:ok, %ToyRobot.Position{x: 1, y: :a, facing: :north}}
-  end
 
-  def start(x, y, facing) when x < 1 or y < :a or x > @table_top_x or y > @table_top_y or facing not in [:north, :east, :south, :west] do
-    {:failure, "Invalid START position"}
-  end
 
   def stop(_robot, goal_x, goal_y, _cli_proc_name) when goal_x < 1 or goal_y < :a or goal_x > @table_top_x or goal_y > @table_top_y do
     {:failure, "Invalid STOP position"}
@@ -70,77 +76,71 @@ defmodule ToyRobot do
   Provide STOP position to the robot as given location of (x, y) and plan the path from START to STOP.
   Passing the CLI Server process name that will be used to send robot's current status after each action is taken.
   """
-  # move north untill alligned
-  def go_north(robot, goal_x, goal_y, cli_proc_name) when robot.facing != :north do
-    robot = left(robot)
-    send_robot_status(robot,cli_proc_name)
-    go_north(robot, goal_x, goal_y, cli_proc_name)
-  end
 
-  def go_north(robot, goal_x, goal_y, cli_proc_name) do
-    if robot.y < goal_y do
-      robot = move(robot)
-      send_robot_status(robot,cli_proc_name)
-      go_north(robot, goal_x, goal_y, cli_proc_name)
-    end
-  end
-  #
-  def go_west(robot, goal_x, goal_y, cli_proc_name) when robot.facing != :west do
-    robot = left(robot)
-    send_robot_status(robot,cli_proc_name)
-    go_west(robot, goal_x, goal_y, cli_proc_name)
-  end
-
-  def go_west(robot, goal_x, goal_y, cli_proc_name) do
-    if robot.x > goal_y do
-      robot = move(robot)
-      send_robot_status(robot,cli_proc_name)
-      go_west(robot, goal_x, goal_y, cli_proc_name)
-    end
-  end
-
-  def go_south(robot, goal_x, goal_y, cli_proc_name) when robot.facing != :south do
-    robot = left(robot)
-    send_robot_status(robot,cli_proc_name)
-    go_south(robot, goal_x, goal_y, cli_proc_name)
-  end
-
-  def go_south(robot, goal_x, goal_y, cli_proc_name) do
-    if robot.y > goal_y do
-      robot = move(robot)
-      send_robot_status(robot,cli_proc_name)
-      go_south(robot, goal_x, goal_y, cli_proc_name)
-    end
-  end
-
-  def go_east(robot, goal_x, goal_y, cli_proc_name) when robot.facing != :east do
-    robot = left(robot)
-    send_robot_status(robot,cli_proc_name)
-    go_east(robot, goal_x, goal_y, cli_proc_name)
-  end
-
-  def go_east(robot, goal_x, goal_y, cli_proc_name) do
-    if robot.x < goal_x do
-      robot = move(robot)
-      send_robot_status(robot,cli_proc_name)
-      go_east(robot, goal_x, goal_y, cli_proc_name)
-    end
-  end
-
-  #stop function
-  def stop(robot, goal_x, goal_y, cli_proc_name) do
-    if robot.x < goal_x do
-      go_east(robot, goal_x, goal_y, cli_proc_name)
+    def change_facing(%ToyRobot.Position{x: _, y: _, facing: facing} = robot, facing_goal, cli_proc_name) do
+    if facing == facing_goal do
+    robot
     else
-      go_west(robot, goal_x, goal_y, cli_proc_name)
+    %ToyRobot.Position{x: x,y: y,facing: facing} = right(robot)
+    robot = %ToyRobot.Position{robot | x: x, y: y, facing: facing}
+    send_robot_status(robot, cli_proc_name)
+    change_facing(robot, facing_goal, cli_proc_name)
     end
 
-    if robot.y < goal_y do
-      go_north(robot, goal_x, goal_y, cli_proc_name)
-    else
-      go_south(robot, goal_x, goal_y, cli_proc_name)
     end
-  end
+
+    def reach_horiz(%ToyRobot.Position{x: _, y: y, facing: _} = robot, goal_y, cli_proc_name) do
+    if y == goal_y do
+    robot
+    else
+    %ToyRobot.Position{x: x,y: y,facing: facing} = move(robot)
+    robot = %ToyRobot.Position{robot | x: x, y: y, facing: facing}
+    send_robot_status(robot, cli_proc_name)
+    reach_horiz(robot, goal_y, cli_proc_name)
+    end
+    end
+
+    def reach_vert(%ToyRobot.Position{x: x, y: _, facing: _} = robot, goal_x, cli_proc_name) do
+    if x == goal_x do
+    robot
+    else
+    %ToyRobot.Position{x: x,y: y,facing: facing} = move(robot)
+    robot = %ToyRobot.Position{robot | x: x, y: y, facing: facing}
+    send_robot_status(robot, cli_proc_name)
+    reach_vert(robot, goal_x, cli_proc_name)
+    end
+    end
+
+
+    def stop(robot, goal_x, goal_y, cli_proc_name) do
+
+    if robot.y < goal_y  do
+    robot = change_facing(robot, :north, cli_proc_name)
+    robot = reach_horiz(robot, goal_y, cli_proc_name)
+    if robot.x < goal_x  do
+    robot = change_facing(robot, :east, cli_proc_name)
+    robot = reach_vert(robot, goal_x, cli_proc_name)
+    {:ok, robot}
+    else
+    robot = change_facing(robot, :west, cli_proc_name)
+    robot = reach_vert(robot, goal_x, cli_proc_name)
+    {:ok, robot}
+    end
+    else
+    robot = change_facing(robot, :south, cli_proc_name)
+    robot = reach_horiz(robot, goal_y, cli_proc_name)
+    if robot.x < goal_x  do
+    robot = change_facing(robot, :east, cli_proc_name)
+    robot = reach_vert(robot, goal_x, cli_proc_name)
+    {:ok, robot}
+    else
+    robot = change_facing(robot, :west, cli_proc_name)
+    robot = reach_vert(robot, goal_x, cli_proc_name)
+    {:ok, robot}
+    end
+    end
+
+    end
 
   @doc """
   Send Toy Robot's current status i.e. location (x, y) and facing
