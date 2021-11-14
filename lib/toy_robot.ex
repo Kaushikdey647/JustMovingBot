@@ -58,7 +58,7 @@ defmodule ToyRobot do
     {:ok, %ToyRobot.Position{x: 1, y: :a, facing: :north}}
   end
 
-  def start(x, y, facing) when x < 1 or y < :a or x > @table_top_x or y > @table_top_y or facing facing not in [:north, :east, :south, :west] do
+  def start(x, y, facing) when x < 1 or y < :a or x > @table_top_x or y > @table_top_y or facing not in [:north, :east, :south, :west] do
     {:failure, "Invalid START position"}
   end
 
@@ -116,7 +116,7 @@ defmodule ToyRobot do
   def go_east(robot, goal_x, goal_y, cli_proc_name) when robot.facing != :east do
     robot = left(robot)
     send_robot_status(robot,cli_proc_name)
-    go_up(robot, goal_x, goal_y, cli_proc_name)
+    go_east(robot, goal_x, goal_y, cli_proc_name)
   end
 
   def go_east(robot, goal_x, goal_y, cli_proc_name) do
