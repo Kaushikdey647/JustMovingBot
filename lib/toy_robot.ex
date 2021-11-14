@@ -50,6 +50,11 @@ defmodule ToyRobot do
   @doc """
   Provide START position to the robot as given location of (x, y, facing) and place it.
   """
+
+  def start(x, y, facing) when x < 1 or y < :a or x > @table_top_x or y > @table_top_y or facing not in [:north, :east, :south, :west] do
+    {:failure, "Invalid START position"}
+  end
+
   def start(x, y, facing) do
     {:ok, %ToyRobot.Position{x: x, y: y, facing: facing}}
   end
@@ -58,87 +63,108 @@ defmodule ToyRobot do
     {:ok, %ToyRobot.Position{x: 1, y: :a, facing: :north}}
   end
 
-  def start(x, y, facing) when x < 1 or y < :a or x > @table_top_x or y > @table_top_y or facing not in [:north, :east, :south, :west] do
-    {:failure, "Invalid START position"}
-  end
-
-  def stop(_robot, goal_x, goal_y, _cli_proc_name) when goal_x < 1 or goal_y < :a or goal_x > @table_top_x or goal_y > @table_top_y do
-    {:failure, "Invalid STOP position"}
-  end
-
   @doc """
   Provide STOP position to the robot as given location of (x, y) and plan the path from START to STOP.
   Passing the CLI Server process name that will be used to send robot's current status after each action is taken.
   """
   # move north untill alligned
   def go_north(robot, goal_x, goal_y, cli_proc_name) when robot.facing != :north do
-    robot = left(robot)
-    send_robot_status(robot,cli_proc_name)
-    go_north(robot, goal_x, goal_y, cli_proc_name)
+    if robot.facing == :west do
+      ToyRobot.right(robot)
+    else
+      ToyRobot.left(robot)
+    end
+    ToyRobot.send_robot_status(robot,cli_proc_name)
+    ToyRobot.go_north(robot, goal_x, goal_y, cli_proc_name)
+    {:ok,robot}
   end
 
   def go_north(robot, goal_x, goal_y, cli_proc_name) do
     if robot.y < goal_y do
-      robot = move(robot)
-      send_robot_status(robot,cli_proc_name)
-      go_north(robot, goal_x, goal_y, cli_proc_name)
+      ToyRobot.move(robot)
+      ToyRobot.send_robot_status(robot,cli_proc_name)
+      ToyRobot.go_north(robot, goal_x, goal_y, cli_proc_name)
     end
+    {:ok,robot}
   end
   #
   def go_west(robot, goal_x, goal_y, cli_proc_name) when robot.facing != :west do
-    robot = left(robot)
-    send_robot_status(robot,cli_proc_name)
-    go_west(robot, goal_x, goal_y, cli_proc_name)
+    if robot.facing == :south do
+      ToyRobot.right(robot)
+    else
+      ToyRobot.left(robot)
+    end
+    ToyRobot.send_robot_status(robot,cli_proc_name)
+    ToyRobot.go_west(robot, goal_x, goal_y, cli_proc_name)
+    {:ok,robot}
   end
 
   def go_west(robot, goal_x, goal_y, cli_proc_name) do
     if robot.x > goal_y do
-      robot = move(robot)
-      send_robot_status(robot,cli_proc_name)
-      go_west(robot, goal_x, goal_y, cli_proc_name)
+      ToyRobot.move(robot)
+      ToyRobot.send_robot_status(robot,cli_proc_name)
+      ToyRobot.go_west(robot, goal_x, goal_y, cli_proc_name)
     end
+    {:ok,robot}
   end
 
   def go_south(robot, goal_x, goal_y, cli_proc_name) when robot.facing != :south do
-    robot = left(robot)
-    send_robot_status(robot,cli_proc_name)
-    go_south(robot, goal_x, goal_y, cli_proc_name)
+    if robot.facing == :east do
+      ToyRobot.right(robot)
+    else
+      ToyRobot.left(robot)
+    end
+    ToyRobot.send_robot_status(robot,cli_proc_name)
+    ToyRobot.go_south(robot, goal_x, goal_y, cli_proc_name)
+    {:ok,robot}
   end
 
   def go_south(robot, goal_x, goal_y, cli_proc_name) do
     if robot.y > goal_y do
-      robot = move(robot)
-      send_robot_status(robot,cli_proc_name)
-      go_south(robot, goal_x, goal_y, cli_proc_name)
+      ToyRobot.move(robot)
+      ToyRobot.send_robot_status(robot,cli_proc_name)
+      ToyRobot.go_south(robot, goal_x, goal_y, cli_proc_name)
     end
+    {:ok,robot}
   end
 
   def go_east(robot, goal_x, goal_y, cli_proc_name) when robot.facing != :east do
-    robot = left(robot)
-    send_robot_status(robot,cli_proc_name)
-    go_east(robot, goal_x, goal_y, cli_proc_name)
+    if robot.facing == :north do
+      ToyRobot.right(robot)
+    else
+      ToyRobot.left(robot)
+    end
+    ToyRobot.send_robot_status(robot,cli_proc_name)
+    ToyRobot.go_east(robot, goal_x, goal_y, cli_proc_name)
+    {:ok,robot}
   end
 
   def go_east(robot, goal_x, goal_y, cli_proc_name) do
     if robot.x < goal_x do
-      robot = move(robot)
-      send_robot_status(robot,cli_proc_name)
-      go_east(robot, goal_x, goal_y, cli_proc_name)
+      ToyRobot.move(robot)
+      ToyRobot.send_robot_status(robot,cli_proc_name)
+      ToyRobot.go_east(robot, goal_x, goal_y, cli_proc_name)
     end
+    {:ok,robot}
   end
 
   #stop function
+
+  def stop(_robot, goal_x, goal_y, _cli_proc_name) when goal_x < 1 or goal_y < :a or goal_x > @table_top_x or goal_y > @table_top_y do
+    {:failure, "Invalid STOP position"}
+  end
+
   def stop(robot, goal_x, goal_y, cli_proc_name) do
     if robot.x < goal_x do
-      go_east(robot, goal_x, goal_y, cli_proc_name)
+      ToyRobot.go_east(robot, goal_x, goal_y, cli_proc_name)
     else
-      go_west(robot, goal_x, goal_y, cli_proc_name)
+      ToyRobot.go_west(robot, goal_x, goal_y, cli_proc_name)
     end
 
     if robot.y < goal_y do
-      go_north(robot, goal_x, goal_y, cli_proc_name)
+      ToyRobot.go_north(robot, goal_x, goal_y, cli_proc_name)
     else
-      go_south(robot, goal_x, goal_y, cli_proc_name)
+      ToyRobot.go_south(robot, goal_x, goal_y, cli_proc_name)
     end
   end
 
